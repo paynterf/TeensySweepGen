@@ -1,11 +1,23 @@
+//Frequency and amplitude sweep tool for testing IR demodulator
+//07/11/17 modified to trigger the demodulator so its output can be related to sweep freq
+
+
 const int SQWAVE_PIN = 33;
 const int DAC_PIN = A21; //DAC0
 const int LED_PIN = 13; //added 03/10/15
+const int DEMOD_SYNCH_OUT_PIN = 1;
+const int DEMOD_SYNCH_IN_PIN = 2;
 
-const int DEFAULT_START_FREQ = 25;//one octave below
-const int DEFAULT_END_FREQ = 104;//one octave above
+//const int DEFAULT_START_FREQ = 25;//one octave below
+//const int DEFAULT_END_FREQ = 104;//one octave above
+//const int DEFAULT_FREQ_STEPS = 40;
+//const int DEFAULT_SEC_PER_STEP = 2;
+//const int DEFAULT_OUTPUT_PCT = 50;
+
+const int DEFAULT_START_FREQ = 48;//2Hz below
+const int DEFAULT_END_FREQ = 56;//2Hz above
 const int DEFAULT_FREQ_STEPS = 40;
-const int DEFAULT_SEC_PER_STEP = 2;
+const int DEFAULT_SEC_PER_STEP = 1;
 const int DEFAULT_OUTPUT_PCT = 50;
 
 //swept freq variables
@@ -33,9 +45,12 @@ void setup()
 	pinMode(SQWAVE_PIN, OUTPUT);
 	pinMode(LED_PIN, OUTPUT);
 	pinMode(DAC_PIN, OUTPUT); //analog output pin
+	pinMode(DEMOD_SYNCH_OUT_PIN, OUTPUT); //07/11/17 added for triggering IR demod modle
+	pinMode(DEMOD_SYNCH_IN_PIN, INPUT_PULLDOWN); //07/11/17 added for triggering IR demod modle
 
 	digitalWrite(SQWAVE_PIN, LOW);
 	digitalWrite(LED_PIN, LOW);
+	digitalWrite(DEMOD_SYNCH_OUT_PIN, LOW); //initial state
 
 	//initialize test mode and test parameters
 	Serial.println("Swept Frequency/Amplitude Generator"); Serial.println();
@@ -73,12 +88,22 @@ void setup()
 		Serial.println(res);
 		if (!res.equalsIgnoreCase('N'))
 		{
+			digitalWrite(DEMOD_SYNCH_OUT_PIN, HIGH); //trigger IR demod start
+			while (digitalRead(DEMOD_SYNCH_IN_PIN) == LOW)
+			{
+				//infinite loop to wait for trigger from IR demod module
+				Serial.println("Waiting for IR Demod Response....");
+				delay(1000);
+			}
+
 			float freqstepHz = (float)(FreqEnd - FreqStart) / (float)(FreqSteps - 1);
 			int DACoutHigh = 4096;
 			int DACoutLow = DACoutHigh*OutLevelPct / 100;
-			for (int i = 0; i < 10; i++)
+			//07/11/17 now doing only one sweep, but it is synched with demod
+			//for (int i = 0; i < 10; i++)
 			{
-				Serial.print("Iteration # "); Serial.println(i + 1);
+				//Serial.print("Iteration # "); Serial.println(i + 1);
+				Serial.print("Starting....");
 
 				for (int i = 0; i < FreqSteps; i++)
 				{
