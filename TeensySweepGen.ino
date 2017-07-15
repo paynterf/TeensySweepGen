@@ -102,7 +102,7 @@ void setup()
 		Serial.print("Start = "); Serial.print(FreqStart);
 		Serial.print(", End = "); Serial.print(FreqEnd);
 		Serial.print(", Steps = "); Serial.print(FreqSteps);
-		//Serial.print(", CycPerStep = "); Serial.print(CyclesPerStep);
+		Serial.println();
 		Serial.print(", SecPerFreqStep = "); Serial.print(SecPerFreqStep);
 		Serial.print(", OutputLevel = "); Serial.print(OutLevelPct);
 		Serial.println();
@@ -191,7 +191,7 @@ void setup()
 		Serial.print("Start = "); Serial.print(AmpStartPct);
 		Serial.print(", End = "); Serial.print(AmpEndPct);
 		Serial.print(", Steps = "); Serial.print(AmpSteps);
-		//Serial.print(", CycPerStep = "); Serial.print(CyclesPerStep);
+		Serial.println();
 		Serial.print(", SecPerAmpStep = "); Serial.print(SecPerAmpStep);
 		Serial.print(", Output Ctr Freq = "); Serial.print(AmpCtrFreqHz);
 		Serial.println();
@@ -219,7 +219,7 @@ void setup()
 			//for (int i = 0; i < 10; i++)
 			{
 				//Serial.print("Iteration # "); Serial.println(i + 1);
-				Serial.print("Starting....");
+				Serial.println("Starting....");
 				Serial.println("Step\tAmpPct\tValue");
 
 				for (int i = 0; i < AmpSteps; i++)
