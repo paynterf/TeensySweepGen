@@ -90,7 +90,7 @@ void setup()
 		//FreqStart = GetIntegerParameter("Start Freq?", DEFAULT_START_FREQ);
 		//FreqEnd = GetIntegerParameter("End Freq?", DEFAULT_END_FREQ);
 		//FreqSteps = GetIntegerParameter("Freq Steps?", DEFAULT_FREQ_STEPS);
-		//CyclesPerStep = GetIntegerParameter("Cycles Per Step?", DEFAULT_CYCLES_PER_STEP);
+		//SecPerFreqStep = GetFloatParameter(Seconds Per Step?", DEFAULT_CYCLES_PER_STEP);
 		//OutLevelPct = GetIntegerParameter("Output Level Pct?", DEFAULT_OUTPUT_PCT);
 		FreqStart = DEFAULT_START_FREQ;
 		FreqEnd = DEFAULT_END_FREQ;
@@ -129,7 +129,7 @@ void setup()
 			//for (int i = 0; i < 10; i++)
 			{
 				//Serial.print("Iteration # "); Serial.println(i + 1);
-				Serial.print("Starting....");
+				Serial.println("Starting....");
 				Serial.println("Step\tFreq\tValue");
 
 				for (int i = 0; i < FreqSteps; i++)
@@ -177,8 +177,10 @@ void setup()
 		AmpStartPct = GetIntegerParameter("Start Amp Pct?", DEFAULT_START_AMP_PCT);
 		AmpEndPct = GetIntegerParameter("End Amp Pct?", DEFAULT_END_AMP_PCT);
 		AmpSteps = GetIntegerParameter("Amp Steps?", DEFAULT_AMP_STEPS);
-		SecPerAmpStep = GetIntegerParameter("Sec Per Step?", DEFAULT_SEC_PER_AMP_STEP);
-		AmpCtrFreqHz = GetIntegerParameter("Output Ctr Freq HZ?", DEFAULT_AMP_CTR_FREQ_HZ);
+		//SecPerAmpStep = GetIntegerParameter("Sec Per Step?", DEFAULT_SEC_PER_AMP_STEP);
+		//AmpCtrFreqHz = GetIntegerParameter("Output Ctr Freq HZ?", DEFAULT_AMP_CTR_FREQ_HZ);
+		SecPerAmpStep = GetFloatParameter("Sec Per Step?", DEFAULT_SEC_PER_AMP_STEP);
+		AmpCtrFreqHz = GetFloatParameter("Output Ctr Freq HZ?", DEFAULT_AMP_CTR_FREQ_HZ);
 		//AmpStartPct = DEFAULT_START_AMP_PCT;
 		//AmpEndPct = DEFAULT_END_AMP_PCT;
 		//AmpSteps = DEFAULT_AMP_STEPS;
@@ -322,6 +324,40 @@ int GetIntegerParameter(String prompt, int defaultval)
 			if (isNumeric(Instr) && atoi(Instr) >= 0)
 			{
 				param = atoi(Instr);
+				bDone = true;
+			}
+			else
+			{
+				Serial.print(Instr); Serial.println(" Is invalid input - please try again");
+			}
+		}
+	}
+	Serial.println(param);
+	return param;
+}
+
+float GetFloatParameter(String prompt, int defaultval)
+{
+	int param = 0;
+	bool bDone = false;
+
+	while (!bDone)
+	{
+		Serial.print(prompt); Serial.print(" ("); Serial.print(defaultval); Serial.print("): ");
+		while (Serial.available() == 0); //waits for input
+		String res = Serial.readString().trim();
+		int reslen = res.length();
+		if (reslen == 0) //user entered CR only
+		{
+			bDone = true;
+			param = defaultval;
+		}
+		else
+		{
+			res.toCharArray(Instr, reslen + 1);
+			if (isNumeric(Instr) && atoi(Instr) >= 0)
+			{
+				param = atof(Instr);
 				bDone = true;
 			}
 			else
