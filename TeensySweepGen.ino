@@ -3,6 +3,7 @@
 #include <ADC.h> //Analog-to-Digital library
 
 ADC *adc = new ADC(); // adc object;
+IntervalTimer myTimer; //added 07/23/17
 
 
 const int SQWAVE_PIN = 33;
@@ -12,10 +13,10 @@ const int DEMOD_SYNCH_OUT_PIN = 1;
 const int DEMOD_SYNCH_IN_PIN = 2;
 const int DEMOD_VALUE_READ_PIN = A12;
 
-const int DEFAULT_START_FREQ = 501;//8Hz below
-const int DEFAULT_END_FREQ = 531;//8Hz above
+const int DEFAULT_START_FREQ = 510;//8Hz below
+const int DEFAULT_END_FREQ = 530;//8Hz above
 const int DEFAULT_FREQ_STEPS = 60;
-const float DEFAULT_SEC_PER_FREQ_STEP = 0.5;
+const float DEFAULT_SEC_PER_FREQ_STEP = 1;
 const int DEFAULT_OUTPUT_PCT = 50;
 
 const int DEFAULT_START_AMP_PCT = 0;
@@ -48,6 +49,12 @@ int AmpSteps = 0;
 float AmpCtrFreqHz = 0;
 float SecPerAmpStep = 0;
 float HalfCycleMicroSec;
+
+//common variables
+int DACoutHigh;
+int DACoutLow;
+int SqWvOutState = LOW;
+
 
 char Instr[20];
 
@@ -131,9 +138,9 @@ void setup()
 			//	delay(1000);
 			//}
 
-			float freqstepHz = (float)(FreqEnd - FreqStart) / (float)(FreqSteps - 1);
-			int DACoutHigh = 4096;
-			int DACoutLow = DACoutHigh*OutLevelPct / 100;
+			float freqstepHz = (float)(FreqEnd - FreqStart) / (float)(FreqSteps);
+			DACoutHigh = 4096;
+			DACoutLow = DACoutHigh*OutLevelPct / 100;
 			//07/11/17 now doing only one sweep, but it is synched with demod
 			//for (int i = 0; i < 10; i++)
 			{
@@ -141,36 +148,40 @@ void setup()
 				Serial.println("Starting....");
 				Serial.println("Step\tFreq\tValue");
 
-				for (int i = 0; i < FreqSteps; i++)
+				for (int i = 0; i <= FreqSteps; i++)
 				{
 					float freqHz = FreqStart + i*freqstepHz;
 					//Serial.print("Step "); Serial.print(i + 1); Serial.print(" Freq = "); Serial.println(freqHz);
 
 					//compute required elapsed time for square wave transitions
 					HalfCycleMicroSec = 0.5e6 / freqHz;
+					myTimer.begin(SqwvGen, HalfCycleMicroSec);
+					delay(SecPerFreqStep*1000);
+					myTimer.end();
 
-					//output a square wave for the specified number of seconds
-					long startMsec = millis();
-					
-					//while (stopMsec - startMsec < 1000* SecPerFreqStep)
-					while (millis() - startMsec < 1000* SecPerFreqStep)
-					{
-						long startUsec = micros();
-						digitalWrite(SQWAVE_PIN, HIGH);
-						analogWriteDAC0(DACoutHigh);
-						digitalWrite(LED_PIN, HIGH);
-						while (micros() - startUsec < HalfCycleMicroSec);//wait for rest of half-period to elapse
 
-						digitalWrite(SQWAVE_PIN, LOW);
-						analogWriteDAC0(DACoutLow);
-						digitalWrite(LED_PIN, LOW);
-						delayMicroseconds((int)HalfCycleMicroSec);
-						while (micros() - startUsec < 2 * HalfCycleMicroSec);//wait for rest of half-period to elapse
-					}
+					////output a square wave for the specified number of seconds
+					//long startMsec = millis();
+					//
+					////while (stopMsec - startMsec < 1000* SecPerFreqStep)
+					//while (millis() - startMsec < 1000* SecPerFreqStep)
+					//{
+					//	long startUsec = micros();
+					//	digitalWrite(SQWAVE_PIN, HIGH);
+					//	analogWriteDAC0(DACoutHigh);
+					//	digitalWrite(LED_PIN, HIGH);
+					//	while (micros() - startUsec < HalfCycleMicroSec);//wait for rest of half-period to elapse
+
+					//	digitalWrite(SQWAVE_PIN, LOW);
+					//	analogWriteDAC0(DACoutLow);
+					//	digitalWrite(LED_PIN, LOW);
+					//	delayMicroseconds((int)HalfCycleMicroSec);
+					//	while (micros() - startUsec < 2 * HalfCycleMicroSec);//wait for rest of half-period to elapse
+					//}
 
 					//read & print the analog voltage
 					int FinalVal = adc->analogRead(DEMOD_VALUE_READ_PIN); //0-4096
-					Serial.print(i + 1); Serial.print("\t");
+					Serial.print(i+1); Serial.print("\t");
 					Serial.print(freqHz); Serial.print("\t");
 					Serial.print(FinalVal);
 					Serial.println();
@@ -221,7 +232,7 @@ void setup()
 
 			//float AmpStepPct = (float)(AmpEndPct - AmpStartPct) / (float)(AmpSteps - 1);
 			float AmpStepPct = (AmpSteps > 1)? (float)(AmpEndPct - AmpStartPct) / (float)(AmpSteps - 1): 0;
-			int DACoutHigh = 4096;
+			DACoutHigh = 4096;
 			//int DACoutLow = 0;
 
 			//07/11/17 now doing only one sweep, but it is synched with demod
@@ -277,8 +288,25 @@ void setup()
 	Serial.println("Exiting - Bye!");
 	digitalWrite(DEMOD_SYNCH_OUT_PIN, LOW);
 	while (1);
-}
+}//setup()
 
+// functions called by IntervalTimer should be short, run as quickly as
+// possible, and should avoid calling other functions if possible.
+void SqwvGen(void)
+{
+	if (SqWvOutState == LOW)
+	{
+		SqWvOutState = HIGH;
+		digitalWrite(SQWAVE_PIN, HIGH);
+		analogWriteDAC0(DACoutHigh);
+	}
+	else 
+	{
+		SqWvOutState = LOW;
+		digitalWrite(SQWAVE_PIN, LOW);
+		analogWriteDAC0(DACoutLow);
+	}
+}
 void loop()
 {
 
