@@ -15,8 +15,8 @@ const int DEMOD_VALUE_READ_PIN = A12;
 
 const int DEFAULT_START_FREQ = 510;//8Hz below
 const int DEFAULT_END_FREQ = 530;//8Hz above
-const int DEFAULT_FREQ_STEPS = 60;
-const float DEFAULT_SEC_PER_FREQ_STEP = 1;
+const int DEFAULT_FREQ_STEPS = 30;
+const float DEFAULT_SEC_PER_FREQ_STEP = 0.5;
 const int DEFAULT_OUTPUT_PCT = 50;
 
 const int DEFAULT_START_AMP_PCT = 0;
@@ -159,35 +159,12 @@ void setup()
 					delay(SecPerFreqStep*1000);
 					myTimer.end();
 
-
-					////output a square wave for the specified number of seconds
-					//long startMsec = millis();
-					//
-					////while (stopMsec - startMsec < 1000* SecPerFreqStep)
-					//while (millis() - startMsec < 1000* SecPerFreqStep)
-					//{
-					//	long startUsec = micros();
-					//	digitalWrite(SQWAVE_PIN, HIGH);
-					//	analogWriteDAC0(DACoutHigh);
-					//	digitalWrite(LED_PIN, HIGH);
-					//	while (micros() - startUsec < HalfCycleMicroSec);//wait for rest of half-period to elapse
-
-					//	digitalWrite(SQWAVE_PIN, LOW);
-					//	analogWriteDAC0(DACoutLow);
-					//	digitalWrite(LED_PIN, LOW);
-					//	delayMicroseconds((int)HalfCycleMicroSec);
-					//	while (micros() - startUsec < 2 * HalfCycleMicroSec);//wait for rest of half-period to elapse
-					//}
-
 					//read & print the analog voltage
 					int FinalVal = adc->analogRead(DEMOD_VALUE_READ_PIN); //0-4096
 					Serial.print(i+1); Serial.print("\t");
 					Serial.print(freqHz); Serial.print("\t");
 					Serial.print(FinalVal);
 					Serial.println();
-					
-
-					//delay(1000);
 				}
 			}
 				delay(3000);
