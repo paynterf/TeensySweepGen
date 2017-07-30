@@ -157,7 +157,7 @@ void setup()
 					HalfCycleMicroSec = 0.5e6 / freqHz;
 					myTimer.begin(SqwvGen, HalfCycleMicroSec);
 					delay(SecPerFreqStep*1000);
-					myTimer.end();
+					//myTimer.end(); //c/o 07/29/17
 
 					//read & print the analog voltage
 					int FinalVal = adc->analogRead(DEMOD_VALUE_READ_PIN); //0-4096
@@ -166,8 +166,9 @@ void setup()
 					Serial.print(FinalVal);
 					Serial.println();
 				}
+					myTimer.end(); //07/29/17 moved outside of freq step loop
 			}
-				delay(3000);
+				//delay(3000);
 		}
 	}
 	else//must be amplitude sweep
