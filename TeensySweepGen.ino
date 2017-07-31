@@ -155,7 +155,18 @@ void setup()
 
 					//compute required elapsed time for square wave transitions
 					HalfCycleMicroSec = 0.5e6 / freqHz;
-					myTimer.begin(SqwvGen, HalfCycleMicroSec);
+					//myTimer.begin(SqwvGen, HalfCycleMicroSec);
+
+					//07/30/17 now using tni's technique for updating timer w/o reset 
+					if (i == 0)
+					{
+						myTimer.begin(SqwvGen, HalfCycleMicroSec);
+					}
+					else
+					{
+						updateInterval(myTimer, HalfCycleMicroSec);
+					}
+
 					delay(SecPerFreqStep*1000);
 					//myTimer.end(); //c/o 07/29/17
 
@@ -385,4 +396,13 @@ float GetFloatParameter(String prompt, float defaultval)
 	}
 	Serial.println(param);
 	return param;
+}
+
+void updateInterval(IntervalTimer& timer, float period) 
+{
+	size_t channel_nr = IRQ_PIT_CH0 - timer.operator IRQ_NUMBER_t();
+	if (channel_nr >= 4) return; // no PIT timer assigned
+
+	KINETISK_PIT_CHANNEL_t& channel = (KINETISK_PIT_CHANNELS)[channel_nr];
+	channel.LDVAL = (float)(F_BUS / 1000000) * period - 0.5f;
 }
