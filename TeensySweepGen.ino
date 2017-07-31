@@ -22,18 +22,8 @@ const int DEFAULT_OUTPUT_PCT = 50;
 const int DEFAULT_START_AMP_PCT = 0;
 const int DEFAULT_END_AMP_PCT = 100;
 const int DEFAULT_AMP_STEPS = 40;
-//const float DEFAULT_AMP_CTR_FREQ_HZ = 51.87; //copied from SqWaveGen.ino
-const float DEFAULT_AMP_CTR_FREQ_HZ = 521.1; //number reqd to get 520.8Hz output
+const float DEFAULT_AMP_CTR_FREQ_HZ = 520.8; //copied from SqWaveGen.ino
 const float DEFAULT_SEC_PER_AMP_STEP = 0.5;
-//const int DEFAULT_START_AMP_PCT = 50;
-//const int DEFAULT_END_AMP_PCT = 50;
-//const int DEFAULT_AMP_STEPS = 10;
-//const float DEFAULT_AMP_CTR_FREQ_HZ = 520.8; //copied from SqWaveGen.ino
-//const float DEFAULT_AMP_CTR_FREQ_HZ = 521.1; //number reqd to get 520.8Hz output
-//const float DEFAULT_AMP_CTR_FREQ_HZ = 522.0; //very slow rl
-//const float DEFAULT_AMP_CTR_FREQ_HZ = 521.9; //med lr
-//const float DEFAULT_AMP_CTR_FREQ_HZ = 521.98; //slow rl
-//const float DEFAULT_SEC_PER_AMP_STEP = 10;
 
 //swept freq variables
 int FreqStart = 0;
@@ -103,16 +93,16 @@ void setup()
 	if (!res.equalsIgnoreCase('A'))
 	{
 		////Get Sweep parameters
-		//FreqStart = GetIntegerParameter("Start Freq?", DEFAULT_START_FREQ);
-		//FreqEnd = GetIntegerParameter("End Freq?", DEFAULT_END_FREQ);
-		//FreqSteps = GetIntegerParameter("Freq Steps?", DEFAULT_FREQ_STEPS);
-		//SecPerFreqStep = GetFloatParameter("Seconds Per Step?", DEFAULT_SEC_PER_FREQ_STEP);
-		//OutLevelPct = GetIntegerParameter("Output Level Pct?", DEFAULT_OUTPUT_PCT);
-		FreqStart = DEFAULT_START_FREQ;
-		FreqEnd = DEFAULT_END_FREQ;
-		FreqSteps = DEFAULT_FREQ_STEPS;
-		SecPerFreqStep = DEFAULT_SEC_PER_FREQ_STEP;
-		OutLevelPct = DEFAULT_OUTPUT_PCT;
+		FreqStart = GetIntegerParameter("Start Freq?", DEFAULT_START_FREQ);
+		FreqEnd = GetIntegerParameter("End Freq?", DEFAULT_END_FREQ);
+		FreqSteps = GetIntegerParameter("Freq Steps?", DEFAULT_FREQ_STEPS);
+		SecPerFreqStep = GetFloatParameter("Seconds Per Step?", DEFAULT_SEC_PER_FREQ_STEP);
+		OutLevelPct = GetIntegerParameter("Output Level Pct?", DEFAULT_OUTPUT_PCT);
+		//FreqStart = DEFAULT_START_FREQ;
+		//FreqEnd = DEFAULT_END_FREQ;
+		//FreqSteps = DEFAULT_FREQ_STEPS;
+		//SecPerFreqStep = DEFAULT_SEC_PER_FREQ_STEP;
+		//OutLevelPct = DEFAULT_OUTPUT_PCT;
 
 		Serial.print("Sweep Parameters are: "); 
 		Serial.print("Start = "); Serial.print(FreqStart);
@@ -129,57 +119,45 @@ void setup()
 		Serial.println(res);
 		if (!res.equalsIgnoreCase('N'))
 		{
-			Serial.println("Triggering IR Demod ....");
+			Serial.print("Sent trigger to pin "); Serial.println(DEMOD_SYNCH_OUT_PIN);
 			digitalWrite(DEMOD_SYNCH_OUT_PIN, HIGH); //trigger IR demod start
-			//while (digitalRead(DEMOD_SYNCH_IN_PIN) == LOW)
-			//{
-			//	//infinite loop to wait for trigger from IR demod module
-			//	Serial.println("Waiting for IR Demod Response....");
-			//	delay(1000);
-			//}
 
 			float freqstepHz = (float)(FreqEnd - FreqStart) / (float)(FreqSteps);
 			DACoutHigh = 4096;
 			DACoutLow = DACoutHigh*OutLevelPct / 100;
 			//07/11/17 now doing only one sweep, but it is synched with demod
-			//for (int i = 0; i < 10; i++)
+			//Serial.print("Iteration # "); Serial.println(i + 1);
+			Serial.println("Starting....");
+			Serial.println("Step\tFreq\tValue");
+
+			for (int i = 0; i <= FreqSteps; i++)
 			{
-				//Serial.print("Iteration # "); Serial.println(i + 1);
-				Serial.println("Starting....");
-				Serial.println("Step\tFreq\tValue");
+				float freqHz = FreqStart + i*freqstepHz;
+				//Serial.print("Step "); Serial.print(i + 1); Serial.print(" Freq = "); Serial.println(freqHz);
 
-				for (int i = 0; i <= FreqSteps; i++)
+				//compute required elapsed time for square wave transitions
+				HalfCycleMicroSec = 0.5e6 / freqHz;
+
+				//07/30/17 now using tni's technique for updating timer w/o reset 
+				if (i == 0)
 				{
-					float freqHz = FreqStart + i*freqstepHz;
-					//Serial.print("Step "); Serial.print(i + 1); Serial.print(" Freq = "); Serial.println(freqHz);
-
-					//compute required elapsed time for square wave transitions
-					HalfCycleMicroSec = 0.5e6 / freqHz;
-					//myTimer.begin(SqwvGen, HalfCycleMicroSec);
-
-					//07/30/17 now using tni's technique for updating timer w/o reset 
-					if (i == 0)
-					{
-						myTimer.begin(SqwvGen, HalfCycleMicroSec);
-					}
-					else
-					{
-						updateInterval(myTimer, HalfCycleMicroSec);
-					}
-
-					delay(SecPerFreqStep*1000);
-					//myTimer.end(); //c/o 07/29/17
-
-					//read & print the analog voltage
-					int FinalVal = adc->analogRead(DEMOD_VALUE_READ_PIN); //0-4096
-					Serial.print(i+1); Serial.print("\t");
-					Serial.print(freqHz); Serial.print("\t");
-					Serial.print(FinalVal);
-					Serial.println();
+					myTimer.begin(SqwvGen, HalfCycleMicroSec);
 				}
-					myTimer.end(); //07/29/17 moved outside of freq step loop
+				else
+				{
+					updateInterval(myTimer, HalfCycleMicroSec);
+				}
+
+				delay(SecPerFreqStep*1000);
+
+				//read & print the analog voltage
+				int FinalVal = adc->analogRead(DEMOD_VALUE_READ_PIN); //0-4096
+				Serial.print(i+1); Serial.print("\t");
+				Serial.print(freqHz); Serial.print("\t");
+				Serial.print(FinalVal);
+				Serial.println();
 			}
-				//delay(3000);
+				myTimer.end(); //07/29/17 moved outside of freq step loop
 		}
 	}
 	else//must be amplitude sweep
