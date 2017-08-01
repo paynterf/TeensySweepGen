@@ -1,3 +1,4 @@
+//G. Frank Paynter, PhD created 01 August 2017
 //Frequency and amplitude sweep tool for testing frequency and/or amplitude sensitive devices
 //Output is square wave frequency sweep at specified output level (peak-peak % of full-scale DAC output),
 //or p-p amplitude sweep at specified frequency.  The output appears on Teensy pin A21 (DAC0).
