@@ -1,0 +1,6 @@
+//Frequency and amplitude sweep tool for testing frequency and/or amplitude sensitive devices
+//Output is square wave frequency sweep at specified output level (peak-peak % of full-scale DAC output),
+//or p-p amplitude sweep at specified frequency.  The output appears on Teensy pin A21 (DAC0).
+//the output square wave is echoed to Teensy digital output pin 33 for frequency monitoring
+//Teensy digital output pin 1 is toggled HIGH at the start, and LOW at the end of each sweep
+//Measurement input is expected on analog input pin A12.  This pin is read once at the end of each sweep step
