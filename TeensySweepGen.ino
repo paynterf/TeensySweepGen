@@ -142,7 +142,8 @@ void setup()
 					Serial.println("Starting....");
 					Serial.println("Step\tFreq\tValue");
 
-					for (int i = 0; i <= FreqSteps; i++)
+					//for (int i = 0; i <= FreqSteps; i++)
+					for (int i = 0; i < FreqSteps; i++)
 					{
 						float freqHz = FreqStart + i*freqstepHz;
 
