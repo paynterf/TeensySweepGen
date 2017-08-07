@@ -22,7 +22,8 @@ const int DEMOD_VALUE_READ_PIN = A12;
 
 const int DEFAULT_START_FREQ = 510;//8Hz below
 const int DEFAULT_END_FREQ = 530;//8Hz above
-const int DEFAULT_FREQ_STEPS = 30;
+//const int DEFAULT_FREQ_STEPS = 30;
+const int DEFAULT_FREQ_STEPS = 10;
 const float DEFAULT_SEC_PER_FREQ_STEP = 0.5;
 const int DEFAULT_OUTPUT_PCT = 50;
 
@@ -104,6 +105,8 @@ void setup()
 			FreqSteps = GetIntegerParameter("Freq Steps?", DEFAULT_FREQ_STEPS);
 			SecPerFreqStep = GetFloatParameter("Seconds Per Step?", DEFAULT_SEC_PER_FREQ_STEP);
 			OutLevelPct = GetIntegerParameter("Output Level Pct?", DEFAULT_OUTPUT_PCT);
+
+			//can bypass prompts by commenting out 5 lines above & uncommenting 5 lines below
 			//FreqStart = DEFAULT_START_FREQ;
 			//FreqEnd = DEFAULT_END_FREQ;
 			//FreqSteps = DEFAULT_FREQ_STEPS;
@@ -135,7 +138,8 @@ void setup()
 					Serial.print("Sent trigger to pin "); Serial.println(DEMOD_SYNCH_OUT_PIN);
 					digitalWrite(DEMOD_SYNCH_OUT_PIN, HIGH); //trigger IR demod start
 
-					float freqstepHz = (float)(FreqEnd - FreqStart) / (float)(FreqSteps);
+					//float freqstepHz = (float)(FreqEnd - FreqStart) / (float)(FreqSteps);
+					float freqstepHz = (float)(FreqEnd - FreqStart) / (float)(FreqSteps - 1); //08/06/17 bugfix
 					DACoutHigh = DAC_OUT_HIGH_VAL;
 					DACoutLow = DACoutHigh - DACoutHigh * OutLevelPct / 100; //can't comb terms due to int arith prob
 
@@ -174,6 +178,7 @@ void setup()
 					//toggle synch line
 					digitalWrite(DEMOD_SYNCH_OUT_PIN, LOW);
 					Serial.print("Disabled trigger on pin "); Serial.println(DEMOD_SYNCH_OUT_PIN);
+					delay(500); //added 08/06/17 so can see transition on scope
 				}
 			}
 		}
@@ -258,6 +263,7 @@ void setup()
 					//toggle synch line
 					digitalWrite(DEMOD_SYNCH_OUT_PIN, LOW);
 					Serial.print("Disabled trigger on pin "); Serial.println(DEMOD_SYNCH_OUT_PIN);
+					delay(500); //added 08/06/17 so can see transition on scope
 				}
 			}
 		}
