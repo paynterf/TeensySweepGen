@@ -13,7 +13,8 @@ ADC *adc = new ADC(); // adc object;
 IntervalTimer myTimer; //added 07/23/17
 
 
-const int SQWAVE_PIN = 33; //monitor output
+const int TX_OUTPUT_PIN = 33; //monitor output
+const int IR_LED_GND_PIN = 32; //bugfix - added 08/31/17
 const int DAC_PIN = A21; //DAC0: freq/amp sweep output pin
 const int DAC_OUT_HIGH_VAL = 4096;
 const int LED_PIN = 13; //added 03/10/15
@@ -62,13 +63,15 @@ void setup()
 {
 	Serial.begin(115200);
 	Serial.println("In Setup() ");
-	pinMode(SQWAVE_PIN, OUTPUT);
+	pinMode(TX_OUTPUT_PIN, OUTPUT);
+	pinMode(IR_LED_GND_PIN, OUTPUT); //bugfix added 08/31/17
 	pinMode(LED_PIN, OUTPUT);
 	pinMode(DAC_PIN, OUTPUT); //analog output pin
 	pinMode(DEMOD_SYNCH_OUT_PIN, OUTPUT); //07/11/17 added for triggering IR demod modle
 	pinMode(DEMOD_VALUE_READ_PIN, INPUT); //analog input from demod module
 
-	digitalWrite(SQWAVE_PIN, LOW);
+	digitalWrite(TX_OUTPUT_PIN, LOW);
+	digitalWrite(IR_LED_GND_PIN, LOW); //bugfix added 08/31/17
 	digitalWrite(LED_PIN, LOW);
 	digitalWrite(DEMOD_SYNCH_OUT_PIN, LOW); //initial state
 	//initialize test mode and test parameters
@@ -241,12 +244,12 @@ void setup()
 						while (millis() - startMsec < 1000 * SecPerAmpStep)
 						{
 							long startUsec = micros();
-							digitalWrite(SQWAVE_PIN, HIGH);
+							digitalWrite(TX_OUTPUT_PIN, HIGH);
 							analogWriteDAC0(DACoutHigh);
 							digitalWrite(LED_PIN, HIGH);
 							while (micros() - startUsec < HalfCycleMicroSec);//wait for rest of half-period to elapse
 
-							digitalWrite(SQWAVE_PIN, LOW);
+							digitalWrite(TX_OUTPUT_PIN, LOW);
 							analogWriteDAC0(DACoutHigh * (1 - AmpPct / 100)); //level for this amp step
 							digitalWrite(LED_PIN, LOW);
 							while (micros() - startUsec < 2 * HalfCycleMicroSec);//wait for rest of half-period to elapse
@@ -298,13 +301,13 @@ void SqwvGen(void)
 	if (SqWvOutState == LOW)
 	{
 		SqWvOutState = HIGH;
-		digitalWrite(SQWAVE_PIN, HIGH);
+		digitalWrite(TX_OUTPUT_PIN, HIGH);
 		analogWriteDAC0(DACoutHigh);
 	}
 	else 
 	{
 		SqWvOutState = LOW;
-		digitalWrite(SQWAVE_PIN, LOW);
+		digitalWrite(TX_OUTPUT_PIN, LOW);
 		analogWriteDAC0(DACoutLow);
 	}
 }
