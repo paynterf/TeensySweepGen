@@ -7,23 +7,32 @@
 //Measurement input is expected on analog input pin A12.  This pin is read once at the end of each sweep step
 //Latest source can be found on GitHub at 
 
+//Notes:
+//	09/15/17 revised for Teensy 3.2
+//		DAC_PIN changed from A21 to A14
+//		TX_OUTPUT_PIN (waveform monitor pin) changed from 33 to 12 
+//		IR_LED_GND_PIN eliminated
+
 #include <ADC.h> //Analog-to-Digital library
 
 ADC *adc = new ADC(); // adc object;
 IntervalTimer myTimer; //added 07/23/17
 
+//const int TX_OUTPUT_PIN = 33; //monitor output
+//const int IR_LED_GND_PIN = 32; //bugfix - added 08/31/17
+//const int DAC_PIN = A21; //DAC0: freq/amp sweep output pin
 
-const int TX_OUTPUT_PIN = 33; //monitor output
-const int IR_LED_GND_PIN = 32; //bugfix - added 08/31/17
-const int DAC_PIN = A21; //DAC0: freq/amp sweep output pin
-const int DAC_OUT_HIGH_VAL = 4096;
+//09/15/17 rev for Teensy 3.2
+const int TX_OUTPUT_PIN = 12; //monitor output
+const int DAC_PIN = A14; //DAC0: freq/amp sweep output pin
+//const int IR_LED_GND_PIN = 12;
+const int DAC_OUT_HIGH_VAL = 4095;
 const int LED_PIN = 13; //added 03/10/15
 const int DEMOD_SYNCH_OUT_PIN = 1; //goes HIGH at start and LOW at end of each sweep
-const int DEMOD_VALUE_READ_PIN = A12;
+const int DEMOD_VALUE_READ_PIN = A0; 
 
 const int DEFAULT_START_FREQ = 510;//8Hz below
 const int DEFAULT_END_FREQ = 530;//8Hz above
-//const int DEFAULT_FREQ_STEPS = 30;
 const int DEFAULT_FREQ_STEPS = 10;
 const float DEFAULT_SEC_PER_FREQ_STEP = 0.5;
 const int DEFAULT_OUTPUT_PCT = 50;
@@ -53,27 +62,22 @@ float HalfCycleMicroSec;
 int DACoutHigh;
 int DACoutLow;
 int SqWvOutState = LOW;
-
-
 char Instr[20];
-
-
 
 void setup()
 {
 	Serial.begin(115200);
 	Serial.println("In Setup() ");
 	pinMode(TX_OUTPUT_PIN, OUTPUT);
-	pinMode(IR_LED_GND_PIN, OUTPUT); //bugfix added 08/31/17
 	pinMode(LED_PIN, OUTPUT);
 	pinMode(DAC_PIN, OUTPUT); //analog output pin
 	pinMode(DEMOD_SYNCH_OUT_PIN, OUTPUT); //07/11/17 added for triggering IR demod modle
 	pinMode(DEMOD_VALUE_READ_PIN, INPUT); //analog input from demod module
 
 	digitalWrite(TX_OUTPUT_PIN, LOW);
-	digitalWrite(IR_LED_GND_PIN, LOW); //bugfix added 08/31/17
 	digitalWrite(LED_PIN, LOW);
 	digitalWrite(DEMOD_SYNCH_OUT_PIN, LOW); //initial state
+
 	//initialize test mode and test parameters
 	Serial.println("Swept Frequency/Amplitude Generator"); Serial.println();
 
@@ -83,13 +87,8 @@ void setup()
 	adc->setResolution(12);
 	adc->setAveraging(1);
 
-	//added 07/12/17 - pin 31/A12 is connected to ADC_1 *not* ADC_0!
-	adc->setAveraging(16, ADC_1); // set number of averages
-	adc->setResolution(12, ADC_1); // set bits of resolution
-	adc->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED, ADC_1); // change the conversion speed
-	adc->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED, ADC_1); // change the sampling speed
-
-
+	//09/15/17 intialize the DAC
+	analogWriteResolution(12);
 
 	while (1) //infinite loop.  User can exit at bottom
 	{
@@ -141,15 +140,15 @@ void setup()
 					Serial.print("Sent trigger to pin "); Serial.println(DEMOD_SYNCH_OUT_PIN);
 					digitalWrite(DEMOD_SYNCH_OUT_PIN, HIGH); //trigger IR demod start
 
-					//float freqstepHz = (float)(FreqEnd - FreqStart) / (float)(FreqSteps);
 					float freqstepHz = (float)(FreqEnd - FreqStart) / (float)(FreqSteps - 1); //08/06/17 bugfix
-					DACoutHigh = DAC_OUT_HIGH_VAL;
-					DACoutLow = DACoutHigh - DACoutHigh * OutLevelPct / 100; //can't comb terms due to int arith prob
+
+					//09/16/17 change output sense
+					DACoutLow = 0;
+					DACoutHigh = OutLevelPct*DAC_OUT_HIGH_VAL / 100;
 
 					Serial.println("Starting....");
 					Serial.println("Step\tFreq\tValue");
 
-					//for (int i = 0; i <= FreqSteps; i++)
 					for (int i = 0; i < FreqSteps; i++)
 					{
 						float freqHz = FreqStart + i*freqstepHz;
@@ -170,10 +169,10 @@ void setup()
 						delay(SecPerFreqStep * 1000);
 
 						//read & print the analog voltage
-						int FinalVal = adc->analogRead(DEMOD_VALUE_READ_PIN); //0-4096
+						int RcvVal = adc->analogRead(DEMOD_VALUE_READ_PIN); //0-4096
 						Serial.print(i + 1); Serial.print("\t");
 						Serial.print(freqHz); Serial.print("\t");
-						Serial.print(FinalVal);
+						Serial.print(RcvVal);
 						Serial.println();
 					}
 					myTimer.end(); //07/29/17 moved outside of freq step loop
@@ -224,7 +223,9 @@ void setup()
 					digitalWrite(DEMOD_SYNCH_OUT_PIN, HIGH); //trigger IR demod start
 
 					float AmpStepPct = (AmpSteps > 1) ? (float)(AmpEndPct - AmpStartPct) / (float)(AmpSteps - 1) : 0;
-					DACoutHigh = DAC_OUT_HIGH_VAL;
+
+					//09/16/17 change output sense
+					DACoutLow = 0;
 
 					//compute required elapsed time for square wave transitions
 					HalfCycleMicroSec = 0.5e6 / AmpCtrFreqHz;
@@ -232,35 +233,26 @@ void setup()
 					Serial.print("SecPerAmpStep = "); Serial.println(SecPerAmpStep);
 
 					Serial.println("Starting....");
-					Serial.println("Step\tAmpPct\tValue");
+					Serial.println("Step\tAmpPct\tDACOut\tRcvValue");
+
+					//09/15/17 revised for IntervalTimer use
+					//07/30/17 now using tni's technique for updating timer w/o reset
+					//09/15/17 for amp sweep, freq is constant, so just set it and let it run
+					myTimer.begin(SqwvGen, HalfCycleMicroSec); //SqwvGen is name of ISR
 
 					for (int i = 0; i < AmpSteps; i++)
 					{
 						float AmpPct = AmpStartPct + i*AmpStepPct;
-						//Serial.print("Step "); Serial.print(i + 1); Serial.print(" Amp = "); Serial.println(AmpPct);
+						//DACoutLow = DACoutHigh * (1 - AmpPct / 100); //level for this amp step
 
-						//output a square wave for the specified number of seconds
-						long startMsec = millis();
-						while (millis() - startMsec < 1000 * SecPerAmpStep)
-						{
-							long startUsec = micros();
-							digitalWrite(TX_OUTPUT_PIN, HIGH);
-							analogWriteDAC0(DACoutHigh);
-							digitalWrite(LED_PIN, HIGH);
-							while (micros() - startUsec < HalfCycleMicroSec);//wait for rest of half-period to elapse
+						//09/16/17 change output sense
+						DACoutHigh = AmpPct*DAC_OUT_HIGH_VAL / 100;
+						Serial.printf("%d\t%2.2f\t%d\t", i + 1, AmpPct, DACoutHigh);
+						delay(1000 * SecPerAmpStep);
 
-							digitalWrite(TX_OUTPUT_PIN, LOW);
-							analogWriteDAC0(DACoutHigh * (1 - AmpPct / 100)); //level for this amp step
-							digitalWrite(LED_PIN, LOW);
-							while (micros() - startUsec < 2 * HalfCycleMicroSec);//wait for rest of half-period to elapse
-						}
-
-						//read & print the analog voltage
-						int FinalVal = adc->analogRead(DEMOD_VALUE_READ_PIN); //0-4096
-						Serial.print(i + 1); Serial.print("\t");
-						Serial.print(AmpPct); Serial.print("\t");
-						Serial.print(FinalVal);
-						Serial.println();
+						//get & print the analog voltage
+						int RcvVal = adc->analogRead(DEMOD_VALUE_READ_PIN); //0-4096
+						Serial.println(RcvVal);
 					}
 
 					//toggle synch line
